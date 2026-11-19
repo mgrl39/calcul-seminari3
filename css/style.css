@@ -336,3 +336,109 @@ ul.plain { list-style: none; padding: 0; margin: 0; }
   .sketchbox, .paper-box { margin-left: 14px; margin-right: 14px; }
   .rubric { padding-left: 14px; padding-right: 14px; }
 }
+
+/* ---------- entrena: rang ---------- */
+.chip.rank { cursor: pointer; font: 600 .85rem Inter; color: var(--text); }
+.chip.rank:hover { border-color: var(--accent); }
+.train-head { display: grid; grid-template-columns: auto 1fr; gap: 14px 22px; align-items: center; background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%); }
+.rank-big { display: flex; align-items: center; gap: 12px; }
+.rank-big .ri { font-size: 2.6rem; width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow); }
+.rank-big b { display: block; font: 700 1.4rem "Space Grotesk"; }
+.rank-prog { min-width: 0; }
+.rank-ladder { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.rank-ladder span { font-size: 1.05rem; filter: grayscale(1); opacity: .35; }
+.rank-ladder span.on { filter: none; opacity: 1; }
+.train-actions { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.train-actions .btn.big span { font-weight: 700; }
+.train-cta { border-color: var(--xp); }
+
+/* ---------- entrena: graf ---------- */
+.graph { position: relative; margin: 10px 0 4px; }
+.gedges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ge { fill: none; stroke: var(--border); stroke-width: 2.5; }
+.ge.done { stroke: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.gnode { position: absolute; transform: translateX(-50%); width: 112px; max-width: 32%; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--text); }
+.gnode .gc { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 1.35rem; background: var(--surface-2); border: 3px solid var(--border); transition: transform .15s; flex: none; }
+.gnode:hover .gc { transform: scale(1.08); }
+.gnode .gl { font-size: .74rem; font-weight: 600; line-height: 1.2; text-align: center; max-height: 2.5em; overflow: hidden; background: var(--surface); border-radius: 5px; padding: 0 3px; }
+.gnode .gl .katex { font-size: 1em; }
+.gnode .gs { font-size: .72rem; letter-spacing: 1px; color: var(--muted); background: var(--surface); border-radius: 5px; padding: 0 3px; }
+.gnode .gs i { font-style: normal; color: var(--fire); font-weight: 700; }
+.gnode.s1 .gc { border-color: #c98a4b; background: color-mix(in srgb, #c98a4b 15%, var(--surface)); }
+.gnode.s2 .gc { border-color: #9aa3b5; background: color-mix(in srgb, #9aa3b5 20%, var(--surface)); }
+.gnode.s3 .gc { border-color: var(--xp); background: color-mix(in srgb, var(--xp) 22%, var(--surface)); }
+.gnode.s1 .gs, .gnode.s2 .gs, .gnode.s3 .gs { color: var(--xp); }
+.gnode.locked { opacity: .55; }
+.gnode.next .gc { border-color: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: ring 1.6s infinite; }
+.gnode.stale .gc { border-style: dashed; }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
+.area-node .gc.ring { background: conic-gradient(var(--xp) var(--p), var(--surface-2) 0); border: 0; position: relative; }
+.area-node .gc.ring::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); }
+.area-node .gc.ring > span { position: relative; z-index: 1; }
+.area-card .area-h { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.area-card .area-h h2 { margin: 0; }
+.area-card .area-t { flex: 1; min-width: 160px; }
+.area-card .ai { font-size: 1.6rem; width: 44px; height: 44px; display: grid; place-items: center; background: var(--surface-2); border-radius: 12px; }
+.area-card.gold { border-color: var(--xp); }
+.area-card.gold .bar i { background: var(--xp); }
+.cross { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.req-chip { font: 500 .78rem Inter; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.req-chip b { color: var(--xp); font-weight: 600; letter-spacing: 1px; }
+.req-chip:hover { border-color: var(--accent); }
+.how ul { margin: 0; padding-left: 1.2em; }
+.how li { margin: 4px 0; }
+
+/* ---------- fitxa ---------- */
+.modal-card.sheet { max-width: 580px; text-align: left; max-height: 92vh; overflow-y: auto; padding: 22px 22px 18px; }
+.sheet .eyebrow { margin: 0 0 4px; }
+.sheet h2 { margin: 0 32px 4px 0; }
+.sheet-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-size: 1rem; }
+.sheet-stars { font-size: 1.4rem; letter-spacing: 3px; color: var(--muted); }
+.sheet-stars.s1, .sheet-stars.s2, .sheet-stars.s3 { color: var(--xp); }
+.know { background: var(--accent-soft); border-radius: 12px; padding: 10px 14px; margin: 10px 0; overflow-x: auto; }
+.know > div { margin-top: 4px; }
+.exmp { background: var(--surface-2); border-radius: 12px; padding: 8px 14px; margin: 10px 0; overflow-x: auto; }
+.exmp summary { cursor: pointer; font-weight: 600; }
+.exq { margin-top: 8px; }
+.warnline { color: var(--warn); }
+.sheet-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* ---------- sessió ---------- */
+.drill { max-width: 720px; margin: 0 auto; }
+.drill-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.dbar { flex: 1; height: 14px; }
+.dbar i { background: linear-gradient(90deg, var(--good), color-mix(in srgb, var(--good) 70%, var(--xp))); }
+.dstreak { font: 700 .95rem "Space Grotesk"; white-space: nowrap; filter: grayscale(1); opacity: .6; }
+.dstreak.hot { filter: none; opacity: 1; color: var(--fire); animation: pulse 1.2s infinite; border-radius: 99px; }
+.drill-card { padding: 20px; }
+.dmeta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.dq { font-size: 1.12rem; margin-bottom: 14px; overflow-x: auto; overflow-y: hidden; }
+.dq .katex { font-size: 1.12em; }
+.dopts .opt kbd { font: 600 .72rem ui-monospace, Menlo, monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface-2); margin-right: 6px; color: var(--muted); }
+.drill-card.ok { border-color: var(--good); }
+.drill-card.bad { border-color: var(--bad); animation: shake .35s; }
+.drill-foot { position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: 0 -16px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.drill-foot.ok { background: var(--good-soft); border-top-color: var(--good); }
+.drill-foot.bad { background: var(--bad-soft); border-top-color: var(--bad); }
+.dfb { flex: 1; min-width: 220px; overflow-x: auto; }
+.drill-foot.ok .dfb > b { color: var(--good); font-size: 1.1rem; }
+.drill-foot.bad .dfb > b { color: var(--bad); font-size: 1.1rem; }
+.dsol { margin: 4px 0; font-size: 1.02rem; }
+.dwhy { font-size: .88rem; margin: 4px 0; color: var(--text); }
+details.dwhy summary { cursor: pointer; color: var(--good); font-weight: 600; }
+.btn.danger-solid { background: var(--bad); border-color: var(--bad); color: #fff; }
+.drill-end { text-align: center; max-width: 620px; margin: 0 auto 16px; }
+.end-emoji { font-size: 3.4rem; animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+.end-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+.end-stats div { background: var(--surface-2); border-radius: 12px; padding: 10px 4px; }
+.end-stats b { display: block; font: 700 1.3rem "Space Grotesk"; }
+.end-stats small { color: var(--muted); font-size: .75rem; }
+.drill-end .ractions { justify-content: center; }
+.lvl-big.rank-up { font-size: 3rem; background: none; }
+@media (max-width: 760px) {
+  .train-head { grid-template-columns: 1fr; }
+  .end-stats { grid-template-columns: repeat(2, 1fr); }
+  .gnode { width: 96px; }
+  .gnode .gl { font-size: .7rem; }
+}
+.area-card, #view-train .card { scroll-margin-top: 130px; }

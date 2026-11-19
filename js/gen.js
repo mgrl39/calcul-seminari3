@@ -535,7 +535,7 @@ const G = (() => {
     };
   }
 
-  const TOPIC_GEN = { chain: genChain, limder: genLimDer, study: genStudy, ratlim: genRatlim };
+  const TOPIC_GEN = { chain: genChain, limder: genLimDer, study: genStudy, ratlim: genRatlim, hopital: d => SK.exHopital(d), extrem: d => SK.exExtrem(d) };
   function generate(topic, diff) { return TOPIC_GEN[topic](diff); }
   return { generate, LAYERS, PROOF_RATLIM };
 })();

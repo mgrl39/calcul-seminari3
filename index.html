@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Seminari 3 · Càlcul</title>
-  <meta name="description" content="Entrenador d'exercicis del Tercer Seminari de Càlcul: regla de la cadena, derivada via límit, estudi de funcions i límits a l'infinit.">
+  <meta name="description" content="Entrenador del Tercer Seminari de Càlcul: derivades, regla de la cadena, regla de l'Hôpital, extrems relatius, estudi de funcions i límits.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -29,12 +29,14 @@
             <span class="xptext" id="hdr-xptext">0 / 100 XP</span>
           </div>
         </div>
+        <button class="chip rank" id="hdr-rank" title="Rang de mestria (Entrena)">⚙️ Ferro</button>
         <div class="chip streak" id="hdr-streak-wrap" title="Ratxa de dies seguits practicant">🔥 <b id="hdr-streak">0</b></div>
         <div class="chip combo" id="hdr-combo-wrap" title="Combo: apartats seguits encertats a la primera">⚡ <b id="hdr-combo">×0</b></div>
       </div>
     </div>
     <nav class="nav">
       <button data-view="home" class="active">🏠 Inici</button>
+      <button data-view="train">⚡ Entrena</button>
       <button data-view="learn">🎓 Aprèn</button>
       <button data-view="practice">✏️ Practica</button>
       <button data-view="exam">📝 Simulacre</button>
@@ -45,6 +47,7 @@
 
   <main>
     <div class="view" id="view-home"></div>
+    <div class="view" id="view-train" hidden></div>
     <div class="view" id="view-learn" hidden></div>
     <div class="view" id="view-practice" hidden>
       <div id="practice-bar" class="practice-bar card"></div>
@@ -61,6 +64,7 @@
   <script src="js/mathx.js"></script>
   <script src="js/plot.js"></script>
   <script src="js/gen.js"></script>
+  <script src="js/skills.js"></script>
   <script src="js/theory.js"></script>
   <script src="js/lessons.js"></script>
   <script defer src="js/app.js"></script>

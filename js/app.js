@@ -9,6 +9,8 @@
     limder: { name: 'Derivada via límit', icon: '🎯', n: 2, desc: '$x^k\\sin(1/x)$: derivada en 0, límits i acotació.' },
     study: { name: 'Estudi d\'una funció', icon: '📈', n: 3, desc: 'Zeros, extrems, monotonia, inflexió, curvatura, esbós.' },
     ratlim: { name: 'Límits a l\'infinit', icon: '∞', n: 4, desc: 'Quocients de polinomis quan $x\\to\\pm\\infty$.' },
+    hopital: { name: "Regla de l'Hôpital", icon: '🏥', n: 5, desc: '$\\frac00$, $\\frac\\infty\\infty$, $0\\cdot\\infty$, $\\infty-\\infty$, $1^\\infty$…' },
+    extrem: { name: 'Extrems relatius', icon: '⛰️', n: 6, desc: 'Punts crítics, monotonia, màxims i mínims (amb $e^x$, $\\ln x$…).' },
   };
   const TOPIC_IDS = Object.keys(TOPICS);
   const DIFF = { 1: { name: 'Fàcil', mult: 1 }, 2: { name: 'Mitjà', mult: 1.5 }, 3: { name: 'Difícil', mult: 2 } };
@@ -19,7 +21,8 @@
   const DEF = () => ({
     xp: 0, combo: 0, bestCombo: 0,
     streak: { count: 0, last: null, best: 0 },
-    history: [], mastery: { chain: [], limder: [], study: [], ratlim: [] },
+    history: [], mastery: { chain: [], limder: [], study: [], ratlim: [], hopital: [], extrem: [] },
+    skills: {}, drillStats: { sessions: 0, perfect: 0 },
     missions: { date: null, list: [] }, badges: {},
     daily: { date: null, xp: 0, topics: [] },
     settings: { diff: 'auto', topic: 'mix', paper: false },
@@ -32,6 +35,8 @@
     S.mastery = Object.assign(DEF().mastery, S.mastery || {});
     S.settings = Object.assign(DEF().settings, S.settings || {});
     S.lessons = S.lessons || {};
+    S.skills = S.skills || {};
+    S.drillStats = Object.assign(DEF().drillStats, S.drillStats || {});
   } catch { S = DEF(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* sense emmagatzematge */ } };
 
@@ -75,7 +80,7 @@
   function ensureDaily() {
     const today = dayStr();
     if (S.daily.date !== today) S.daily = { date: today, xp: 0, topics: [] };
-    if (S.missions.date !== today) {
+    if (S.missions.date !== today || S.missions.v !== 2) {
       const h = hash(today);
       const pool = MISSION_POOL.slice();
       const list = [];
@@ -86,7 +91,9 @@
         if (!list.some(x => x.group && x.group === m.group)) list.push({ id: m.id, progress: 0, claimed: false });
         k = Math.floor(k / 7) + 13;
       }
-      S.missions = { date: today, list };
+      // sempre hi ha una missió d'Entrena
+      if (!list.some(x => missionDef(x.id).group === 'drill')) list[list.length - 1] = { id: ['drill3', 'star2', 'drill6'][h % 3], progress: 0, claimed: false };
+      S.missions = { date: today, list, v: 2 };
     }
   }
   function addXP(n, reason, fromMission = false) {
@@ -109,6 +116,7 @@
       <button class="btn primary" data-close>Endavant!</button></div>`;
     m.hidden = false;
     $('[data-close]', m).onclick = () => { m.hidden = true; };
+    $('[data-close]', m).focus();
   }
   function touchStreak() {
     const today = dayStr();
@@ -136,7 +144,13 @@
     { id: 'xp250', kind: 'xp', target: 250, xp: 40, text: 'Guanya 250 XP avui' },
     { id: 'lesson2', kind: 'lesson', target: 2, xp: 50, text: "Completa 2 lliçons del camí d'aprenentatge" },
     { id: 'paper1', kind: 'paper', target: 1, xp: 50, text: 'Fes un exercici en mode paper i corregeix-te' },
-    { id: 'all4', kind: 'alltopics', target: 4, xp: 90, text: "Completa un exercici de cada un dels 4 tipus" },
+    { id: 'all4', kind: 'alltopics', target: 4, xp: 90, text: "Completa exercicis de 4 tipus diferents" },
+    { id: 'c_hopital', group: 'topic', kind: 'complete', topic: 'hopital', target: 2, xp: 70, text: "Completa 2 exercicis de la regla de l'Hôpital" },
+    { id: 'c_extrem', group: 'topic', kind: 'complete', topic: 'extrem', target: 2, xp: 70, text: "Completa 2 estudis d'extrems relatius" },
+    { id: 'drill3', group: 'drill', kind: 'drill', target: 3, xp: 60, text: "Completa 3 sessions d'Entrena" },
+    { id: 'drill6', group: 'drill', kind: 'drill', target: 6, xp: 110, text: "Completa 6 sessions d'Entrena" },
+    { id: 'star2', group: 'drill', kind: 'star', target: 2, xp: 70, text: 'Guanya 2 estrelles de mestria' },
+    { id: 'drillperf', kind: 'drillperfect', target: 1, xp: 50, text: "Fes una sessió d'Entrena sense cap error" },
   ];
   const missionDef = id => MISSION_POOL.find(m => m.id === id);
   function bumpMission(kind, payload = {}) {
@@ -194,7 +208,12 @@
     { id: 'exam9', icon: '🏆', name: 'Excel·lent', desc: 'Treu ≥ 9 en un simulacre', test: () => S.history.some(h => h.mode === 'exam' && h.nota >= 9) },
     ...TOPIC_IDS.map(t => ({ id: 'm_' + t, icon: TOPICS[t].icon, name: 'Domini: ' + TOPICS[t].name, desc: 'Mitjana ≥ 9 (ponderada) als últims 5', test: () => mastery(t).status === 'dominat' })),
     { id: 'path', icon: '🎓', name: 'Camí complet', desc: 'Totes les lliçons amb nota ≥ 7', test: () => LESSONS.list.every(l => (S.lessons[l.id] || 0) >= 7) },
-    { id: 'all', icon: '👑', name: 'Seminari 3 dominat', desc: 'Domina els 4 tipus', test: () => TOPIC_IDS.every(t => mastery(t).status === 'dominat') },
+    { id: 'all', icon: '👑', name: 'Seminari 3 dominat', desc: 'Domina tots els tipus d\'exercici', test: () => TOPIC_IDS.every(t => mastery(t).status === 'dominat') },
+    ...SK.AREAS.map(a => ({ id: 'area_' + a.id, icon: a.icon, name: 'Mestria: ' + a.name, desc: "Totes les habilitats de l'àrea a ★★★", test: () => SK.SKILLS.filter(s => s.area === a.id).every(s => (S.skills[s.id] || {}).lvl === 3) })),
+    { id: 'rank_or', icon: '🥇', name: 'Rang Or', desc: "Arriba al rang Or a Entrena", test: () => rankInfo().i >= 3 },
+    { id: 'rank_dia', icon: '💎', name: 'Rang Diamant', desc: 'Arriba al rang Diamant', test: () => rankInfo().i >= 5 },
+    { id: 'rank_leg', icon: '🌟', name: 'Llegenda', desc: 'Totes les estrelles i ≥ 9 en un simulacre', test: () => rankInfo().i >= 8 },
+    { id: 'drill10', icon: '🏋️', name: 'Constància', desc: "10 sessions d'Entrena", test: () => S.drillStats.sessions >= 10 },
   ];
   function checkBadges() {
     for (const b of BADGES) {
@@ -216,6 +235,8 @@
     $('#hdr-streak-wrap').classList.toggle('lit', S.streak.last === dayStr());
     $('#hdr-combo').textContent = '×' + S.combo;
     $('#hdr-combo-wrap').classList.toggle('hot', S.combo >= 3);
+    const rk = rankInfo();
+    $('#hdr-rank').textContent = `${rk.icon} ${rk.name}`;
   }
 
   /* ===========================================================
@@ -595,6 +616,7 @@
     if (view === 'history') renderHistory();
     if (view === 'theory') renderTheory();
     if (view === 'learn') renderLearn();
+    if (view === 'train') renderTrain();
     window.scrollTo({ top: 0 });
   }
 
@@ -604,33 +626,42 @@
     const li = levelInfo(S.xp);
     const el = $('#view-home');
     const today = S.history.filter(h => new Date(h.t).toISOString().slice(0, 10) === dayStr()).length;
-    const masteredN = TOPIC_IDS.filter(t => mastery(t).status === 'dominat').length;
     el.innerHTML = `
       <section class="hero card">
         <div>
           <p class="eyebrow">Càlcul · Seminari 3</p>
-          <h1>Domina els 4 tipus d'exercici</h1>
-          <p class="muted">Regla de la cadena, derivada via límit, estudi de funcions i límits a l'infinit. Exercicis infinits generats a l'atzar, corregits a l'instant.</p>
+          <h1>Derivades i les seves aplicacions</h1>
+          <p class="muted">Regla de la cadena, derivada via límit, <b>regla de l'Hôpital</b>, <b>extrems relatius</b>, estudi de funcions i límits a l'infinit. Exercicis infinits generats a l'atzar, corregits a l'instant.</p>
           <div class="hero-actions">
-            <button class="btn primary big" data-go="mix">▶ Practica ara</button>
-            <button class="btn ghost big" data-view-go="exam">📝 Simulacre de 50 min</button>
+            <button class="btn primary big" data-view-go="train">⚡ Entrena (sessions ràpides)</button>
+            <button class="btn ghost big" data-go="mix">✏️ Exercici complet</button>
+            <button class="btn ghost big" data-view-go="exam">📝 Simulacre</button>
           </div>
         </div>
         <div class="hero-stats">
           <div class="stat"><span class="sv">${li.lvl}</span><span class="sl">Nivell · ${li.title}</span></div>
           <div class="stat"><span class="sv">🔥 ${liveStreak()}</span><span class="sl">Ratxa de dies (millor ${S.streak.best})</span></div>
           <div class="stat"><span class="sv">${today}</span><span class="sl">Exercicis avui</span></div>
-          <div class="stat"><span class="sv">${masteredN}/4</span><span class="sl">Tipus dominats</span></div>
+          <div class="stat"><span class="sv">${rankInfo().icon} ${rankInfo().st}★</span><span class="sl">Rang ${rankInfo().name}</span></div>
         </div>
       </section>
 
+      ${(() => {
+        const nx = nextSkill(), rk = rankInfo();
+        return `<section class="card learn-cta train-cta">
+          <div class="lc-ico">⚡</div>
+          <div class="lc-body"><b>Entrena: ${rk.icon} ${rk.name}</b><div class="bar"><i style="width:${(rk.p * 100).toFixed(1)}%"></i></div>
+          <span class="muted small">${rk.st}/${rk.max} ★ de mestria · ${SK.SKILLS.length} habilitats en ${SK.AREAS.length} blocs${nx ? ' · Següent: ' + nx.name : ''}</span></div>
+          <button class="btn primary" data-view-go="train">${rk.st ? 'Continua' : 'Comença'} →</button>
+        </section>`;
+      })()}
       ${(() => {
         const nx = nextLesson(), d = LESSONS.list.filter(lessonDone).length;
         return `<section class="card learn-cta ${nx ? '' : 'complete'}">
           <div class="lc-ico">🎓</div>
           <div class="lc-body"><b>Camí d'aprenentatge</b><div class="bar"><i style="width:${d / LESSONS.list.length * 100}%"></i></div>
           <span class="muted small">${d}/${LESSONS.list.length} lliçons · ${nx ? 'Següent: ' + nx.title : 'Completat'}</span></div>
-          <button class="btn ${nx ? 'primary' : 'ghost'}" data-les-go="${nx ? nx.id : ''}">${nx ? (d ? 'Continuar' : 'Començar des de zero') : 'Repassar'} →</button>
+          <button class="btn ghost" data-les-go="${nx ? nx.id : ''}">${nx ? (d ? 'Continuar' : 'Començar des de zero') : 'Repassar'} →</button>
         </section>`;
       })()}
       <div class="grid2">
@@ -734,6 +765,8 @@
     chain: ["He identificat totes les capes en l'ordre correcte (de fora cap a dins)", "El primer factor és la derivada de la capa exterior <b>amb l'argument intacte</b>", "He escrit un factor per a cada capa, sense saltar-me'n cap", "L'últim factor és la derivada del polinomi interior", "Els signes són correctes (p. ex. el − de la derivada del cosinus)", "El resultat coincideix amb el de la resolució"],
     limder: ["He aplicat bé la regla del producte per a $x\\neq0$", "He derivat bé $\\sin(1/x)$ o $\\cos(1/x)$, amb el factor $-1/x^2$", "He estudiat el límit de $f'(x)$ <b>terme a terme</b>", "He justificat cada límit amb l'acotació ($|\\sin|\\le1$, $|\\cos|\\le1$) o he explicat per què oscil·la", "He calculat $f'(0)$ amb la definició (o ho he justificat amb el teorema del valor mitjà)", "La conclusió (derivable? $f'$ contínua?) és correcta"],
     study: ["Zeros correctes", "$f'$ i punts crítics correctes", "Taula de signes de $f'$ i intervals de creixement/decreixement correctes", "Màxims i mínims locals ben classificats", "$f''$, punts d'inflexió i curvatura correctes", "Límits a $\\pm\\infty$ correctes", "Extrems absoluts <b>justificats</b> amb els límits", "L'esbós és coherent amb tot l'anterior"],
+    hopital: ["Abans d'aplicar l'Hôpital he substituït i he <b>escrit</b> quina indeterminació és", "He derivat numerador i denominador <b>per separat</b> (no la regla del quocient)", "Quan ha tornat a sortir indeterminació, ho he indicat i he tornat a aplicar la regla", "He transformat bé les indeterminacions $0\\cdot\\infty$, $\\infty-\\infty$ o exponencials", "Tots els resultats coincideixen amb la resolució"],
+    extrem: ["He indicat el domini de $f$", "$f'(x)$ correcta i factoritzada", "Punts crítics correctes (i he dit per què $e^{(\\dots)}\\neq0$ si cal)", "Taula de signes de $f'$ amb intervals de creixement i decreixement", "Màxims i mínims relatius ben classificats i justificats", "He calculat el valor $f(c)$ de cada extrem", "Si calia, límits o criteri de la 2a derivada correctes"],
     ratlim: ["He identificat el grau i el coeficient principal de dalt i de baix", "He tret factor comú (o he aplicat l'Hôpital) i ho he escrit", "He justificat que els termes $a_j/x^k$ tendeixen a $0$", "Tots els límits concrets són correctes", "Cas general: he distingit els casos $n\\lt m$, $n=m$, $n>m$ i el signe de $a_n/b_m$"],
   };
   function mountPaper(ex, host) {
@@ -840,6 +873,427 @@
     window.scrollTo({ top: 0 });
   }
 
+  /* ===========================================================
+     ENTRENA: graf de coneixement, sessions ràpides, rangs i mestries
+     =========================================================== */
+  const SKS = SK.SKILLS, AREAS = SK.AREAS;
+  const STALE_DAYS = 2, DRILL_N = 8, TEST_N = 6, REVIEW_N = 10;
+  const skState = id => (S.skills[id] ||= { lvl: 0, last: 0, n: 0, ok: 0 });
+  const lvlOf = id => (S.skills[id] ? S.skills[id].lvl : 0);
+  const reqsMet = s => s.req.every(r => lvlOf(r) >= 1);
+  const isStale = id => { const k = S.skills[id]; return !!k && k.lvl >= 1 && Date.now() - k.last > STALE_DAYS * 864e5; };
+  const starsStr = l => '★'.repeat(l) + '☆'.repeat(3 - l);
+  const totalStars = () => SKS.reduce((a, s) => a + lvlOf(s.id), 0);
+  const areaOf = s => AREAS.find(a => a.id === s.area);
+  const RANKS = [
+    { min: 0, name: 'Ferro', icon: '⚙️' },
+    { min: 0.06, name: 'Bronze', icon: '🥉' },
+    { min: 0.18, name: 'Plata', icon: '🥈' },
+    { min: 0.33, name: 'Or', icon: '🥇' },
+    { min: 0.5, name: 'Platí', icon: '💠' },
+    { min: 0.66, name: 'Diamant', icon: '💎' },
+    { min: 0.82, name: 'Mestre', icon: '🎖️' },
+    { min: 0.95, name: 'Gran Mestre', icon: '👑' },
+    { min: 1, name: 'Llegenda', icon: '🌟', exam: true },
+  ];
+  function rankInfo() {
+    const st = totalStars(), max = SKS.length * 3, p = st / max;
+    const exam9 = S.history.some(h => h.mode === 'exam' && h.nota >= 9);
+    let i = 0;
+    RANKS.forEach((r, k) => { if (p >= r.min - 1e-9 && (!r.exam || exam9)) i = k; });
+    const next = RANKS[i + 1];
+    return { ...RANKS[i], i, st, max, p, next, toNext: next ? Math.max(0, Math.ceil(next.min * max - 1e-9) - st) : 0 };
+  }
+  function areaStats(a) {
+    const list = SKS.filter(s => s.area === a.id);
+    const st = list.reduce((x, s) => x + lvlOf(s.id), 0);
+    return { list, st, max: list.length * 3, p: st / (list.length * 3), gold: list.every(s => lvlOf(s.id) === 3) };
+  }
+  // la recomanada: entre les obertes, la de menys estrelles (i primer en l'ordre del graf)
+  function nextSkill() {
+    const open = SKS.filter(s => lvlOf(s.id) < 3 && reqsMet(s));
+    if (!open.length) return null;
+    const m = Math.min(...open.map(s => lvlOf(s.id)));
+    return open.find(s => lvlOf(s.id) === m);
+  }
+
+  /* ---------- graf (DAG per capes) ---------- */
+  const ROW = 146, NODE = 54, LABEL = 52;
+  function dagLayout(ids, reqOf) {
+    const depth = {};
+    const d = id => (depth[id] ??= reqOf(id).length ? 1 + Math.max(...reqOf(id).map(d)) : 0);
+    ids.forEach(d);
+    const rows = [];
+    ids.forEach(id => (rows[depth[id]] ||= []).push(id));
+    const pos = {};
+    const bary = id => { const ps = reqOf(id).filter(p => pos[p]); return ps.length ? ps.reduce((s, p) => s + pos[p].x, 0) / ps.length : 50; };
+    rows.forEach((row, r) => {
+      if (r > 0) row.sort((a, b) => bary(a) - bary(b));
+      row.forEach((id, i) => { pos[id] = { x: (i + 0.5) / row.length * 100, r }; });
+    });
+    return { pos, rows: rows.length };
+  }
+  function graphHTML(ids, reqOf, node, edgeCls) {
+    const { pos, rows } = dagLayout(ids, reqOf);
+    const H = rows * ROW - 30;
+    const cy = r => r * ROW + 6 + NODE / 2;
+    let edges = '';
+    for (const id of ids) for (const p of reqOf(id)) {
+      const a = pos[p], b = pos[id];
+      const y1 = cy(a.r) + NODE / 2 + LABEL, y2 = cy(b.r) - NODE / 2 - 3, ym = (y1 + y2) / 2;
+      edges += `<path d="M${a.x} ${y1} C${a.x} ${ym} ${b.x} ${ym} ${b.x} ${y2}" class="ge ${edgeCls(p, id)}" vector-effect="non-scaling-stroke"/>`;
+    }
+    return `<div class="graph" style="height:${H}px"><svg class="gedges" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">${edges}</svg>
+      ${ids.map(id => { const n = node(id); return `<button class="gnode ${n.cls}" style="left:${pos[id].x}%;top:${cy(pos[id].r) - NODE / 2}px;${n.style || ''}" ${n.attrs}>${n.inner}</button>`; }).join('')}</div>`;
+  }
+  function skillNode(id) {
+    const s = SK.byId[id], l = lvlOf(id), open = reqsMet(s), nx = nextSkill();
+    const cls = [`s${l}`, !open && l === 0 ? 'locked' : '', nx && nx.id === id ? 'next' : '', isStale(id) ? 'stale' : ''].join(' ');
+    return {
+      cls, attrs: `data-skill="${id}" title="${esc(s.name.replace(/\$/g, ''))}"`,
+      inner: `<span class="gc">${!open && l === 0 ? '🔒' : l === 3 ? '👑' : areaOf(s).icon}</span><span class="gl">${s.name}</span><span class="gs">${starsStr(l)}${isStale(id) ? ' <i title="Fa dies que no la practiques">⟳</i>' : ''}</span>`,
+    };
+  }
+
+  /* ---------- vista principal ---------- */
+  function renderTrain() {
+    if (drill) { renderDrill(); return; }
+    const el = $('#view-train');
+    const rk = rankInfo(), nx = nextSkill();
+    const stale = SKS.filter(s => isStale(s.id)).length;
+    const anyLvl = SKS.some(s => lvlOf(s.id) >= 1);
+    const areaReq = id => AREAS.find(a => a.id === id).req;
+    el.innerHTML = `
+      <section class="card train-head">
+        <div class="rank-big"><span class="ri">${rk.icon}</span><div><small class="muted">El teu rang</small><b>${rk.name}</b></div></div>
+        <div class="rank-prog"><div class="bar big"><i style="width:${(rk.p * 100).toFixed(1)}%"></i></div>
+          <span class="muted small">${rk.st} / ${rk.max} ★ de mestria${rk.next ? ` · ${rk.toNext ? `et falten <b>${rk.toNext} ★</b> per a ${rk.next.icon} ${rk.next.name}` : `per a ${rk.next.icon} ${rk.next.name} cal treure ≥ 9 en un simulacre`}` : ' · rang màxim!'}</span>
+          <div class="rank-ladder">${RANKS.map((r, i) => `<span class="${i <= rk.i ? 'on' : ''}" title="${r.name}">${r.icon}</span>`).join('')}</div></div>
+        <div class="train-actions">
+          ${nx ? `<button class="btn primary big" data-start="${nx.id}">▶ Continua: <span>${nx.name}</span></button>` : '<p><b>Totes les habilitats a ★★★!</b></p>'}
+          <button class="btn ghost" id="tr-review" ${anyLvl ? '' : 'disabled'}>🔁 Repàs ràpid (${REVIEW_N})${stale ? ` · ${stale} ⟳` : ''}</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>🗺️ Mapa del coneixement</h2>
+        <p class="muted small">Tot el que cal saber per al seminari (derivades i aplicacions), en blocs. Les fletxes indiquen què cal saber abans. Toca un bloc per veure'n les habilitats.</p>
+        ${graphHTML(AREAS.map(a => a.id), areaReq, id => {
+          const a = AREAS.find(x => x.id === id), st = areaStats(a);
+          return { cls: `area-node ${st.gold ? 's3' : st.st ? 's1' : 's0'}`, attrs: `data-area-go="${id}"`, style: `--p:${(st.p * 100).toFixed(0)}%`,
+            inner: `<span class="gc ring"><span>${a.icon}</span></span><span class="gl">${a.name}</span><span class="gs">${Math.round(st.p * 100)}%</span>` };
+        }, p => (areaStats(AREAS.find(a => a.id === p)).st ? 'done' : ''))}
+      </section>
+      ${AREAS.map(a => {
+        const st = areaStats(a);
+        const ids = st.list.map(s => s.id);
+        const intra = id => SK.byId[id].req.filter(r => ids.includes(r));
+        const cross = [...new Set(st.list.flatMap(s => s.req.filter(r => !ids.includes(r))))];
+        return `<section class="card area-card ${st.gold ? 'gold' : ''}" id="area-${a.id}">
+          <div class="area-h"><span class="ai">${a.icon}</span><div class="area-t"><h2>${a.name}</h2>
+            <span class="muted small">${st.st}/${st.max} ★${st.gold ? ' · <b>Mestria completa</b> 🏅' : ''}</span></div>
+            <button class="btn sm" data-area="${a.id}">🔀 Barreja de l'àrea</button></div>
+          <div class="bar"><i style="width:${(st.p * 100).toFixed(1)}%"></i></div>
+          ${cross.length ? `<p class="cross small muted">Ve de: ${cross.map(r => `<button class="req-chip" data-skill="${r}">${SK.byId[r].name} <b>${starsStr(lvlOf(r))}</b></button>`).join(' ')}</p>` : ''}
+          ${graphHTML(ids, intra, skillNode, p => (lvlOf(p) >= 1 ? 'done' : ''))}
+        </section>`;
+      }).join('')}
+      <section class="card how">
+        <h2>Com funciona</h2>
+        <ul>
+          <li><b>Sessions curtes</b> de ${DRILL_N} exercicis (2–4 minuts). La barra només avança quan encertes; si falles, aquell tipus d'exercici tornarà a sortir (amb números nous).</li>
+          <li><b>Estrelles de mestria:</b> acaba una sessió amb ≥ 80 % d'encerts per guanyar una estrella (☆ → ★ → ★★ → ★★★). Cada estrella fa els exercicis més difícils.</li>
+          <li><b>⏩ Prova directa:</b> si ja ho saps, ${TEST_N} exercicis difícils amb com a màxim 1 error et donen ★★★ de cop.</li>
+          <li><b>⟳ Repàs:</b> les habilitats que fa ${STALE_DAYS} dies que no toques es marquen per repassar. El repàs ràpid barreja les que tens més fluixes.</li>
+          <li><b>Rang:</b> depèn del total d'estrelles. Per a 🌟 Llegenda cal tenir-les totes i treure ≥ 9 en un simulacre.</li>
+        </ul>
+      </section>`;
+    renderMath(el);
+    $$('[data-skill]', el).forEach(b => b.onclick = () => openSkill(b.dataset.skill));
+    $$('[data-start]', el).forEach(b => b.onclick = () => startDrill({ mode: 'skill', ids: [b.dataset.start] }));
+    $$('[data-area]', el).forEach(b => b.onclick = () => {
+      const ids = SKS.filter(s => s.area === b.dataset.area && (reqsMet(s) || lvlOf(s.id))).map(s => s.id);
+      startDrill({ mode: 'area', ids: ids.length ? ids : [SKS.find(s => s.area === b.dataset.area).id], area: b.dataset.area });
+    });
+    $$('[data-area-go]', el).forEach(b => b.onclick = () => $('#area-' + b.dataset.areaGo).scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    const rv = $('#tr-review', el);
+    if (rv) rv.onclick = startReview;
+  }
+  function startReview() {
+    const cand = SKS.filter(s => lvlOf(s.id) >= 1);
+    const pool = cand.length ? cand : SKS.filter(reqsMet);
+    startDrill({ mode: 'review', ids: pool.map(s => s.id) });
+  }
+
+  /* ---------- fitxa d'una habilitat ---------- */
+  function openSkill(id) {
+    const s = SK.byId[id], l = lvlOf(id), a = areaOf(s), k = S.skills[id];
+    let ex;
+    try { ex = SK.gen(id, Math.min(3, l + 1)); } catch { ex = null; }
+    const m = $('#modal');
+    m.innerHTML = `<div class="modal-card sheet" role="dialog" aria-label="${esc(s.name.replace(/\$/g, ''))}">
+      <button class="sheet-x" data-close aria-label="Tanca">✕</button>
+      <p class="eyebrow">${a.icon} ${a.name}</p>
+      <h2>${s.name}</h2>
+      <div class="sheet-stars s${l}">${starsStr(l)}</div>
+      <p class="muted small">${l === 3 ? 'Mestria completa.' : l ? `Nivell ${l} de 3. Següent sessió: exercicis ${['', 'fàcils', 'mitjans', 'difícils'][Math.min(3, l + 1)]}.` : 'Encara no l\'has començat.'}${k && k.n ? ` · ${k.ok}/${k.n} encerts en total` : ''}${isStale(id) ? ' · <b>⟳ toca repassar-la</b>' : ''}</p>
+      <div class="know"><b>💡 Què has de saber</b><div>${s.th}</div></div>
+      ${ex ? `<details class="exmp"><summary>👀 Veure un exemple resolt</summary><div class="exq">${ex.label}</div><p><b>Resposta:</b> ${answerHTML(ex)}</p><p class="muted small">${ex.why || ''}</p></details>` : ''}
+      ${s.req.length ? `<p class="small">Cal saber abans: ${s.req.map(r => `<button class="req-chip" data-req="${r}">${SK.byId[r].name} <b>${starsStr(lvlOf(r))}</b></button>`).join(' ')}</p>` : ''}
+      ${!reqsMet(s) ? '<p class="warnline small">⚠ Et recomano fer primer els requisits, però pots començar igualment.</p>' : ''}
+      <div class="sheet-actions">
+        <button class="btn primary big" data-go-drill>▶ Sessió de ${DRILL_N}</button>
+        ${l < 3 ? `<button class="btn ghost" data-go-test>⏩ Ja ho sé: prova directa a ★★★</button>` : ''}
+      </div>
+    </div>`;
+    m.hidden = false;
+    renderMath(m);
+    const close = () => { m.hidden = true; m.onclick = null; };
+    m.onclick = e => { if (e.target === m) close(); };
+    $('[data-close]', m).onclick = close;
+    $$('[data-req]', m).forEach(b => b.onclick = () => openSkill(b.dataset.req));
+    $('[data-go-drill]', m).onclick = () => { close(); startDrill({ mode: 'skill', ids: [id] }); };
+    const t = $('[data-go-test]', m);
+    if (t) t.onclick = () => { close(); startDrill({ mode: 'test', ids: [id] }); };
+  }
+
+  /* ---------- sessió estil Duolingo ---------- */
+  let drill = null;
+  function startDrill(cfg) {
+    const n = cfg.mode === 'test' ? TEST_N : cfg.mode === 'review' ? REVIEW_N : DRILL_N;
+    drill = { ...cfg, n, done: 0, mistakes: 0, streak: 0, best: 0, retry: [], last: null, t0: Date.now(), item: null, phase: 'ask', choice: null, perSkill: {}, rankBefore: rankInfo().i, lvlBefore: cfg.ids.length === 1 ? lvlOf(cfg.ids[0]) : null };
+    if (current !== 'train') { current = 'train'; $$('.view').forEach(v => { v.hidden = v.id !== 'view-train'; }); $$('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === 'train')); }
+    nextDrillItem();
+    window.scrollTo({ top: 0 });
+  }
+  function drillTier(id) {
+    const l = lvlOf(id);
+    if (drill.mode === 'test') return 3;
+    if (drill.mode === 'skill') return Math.min(3, l + 1);
+    return Math.max(1, Math.min(3, l));
+  }
+  function pickDrillSkill() {
+    if (drill.ids.length === 1) return drill.ids[0];
+    // els errors tornen al cap d'una o dues preguntes
+    if (drill.retry.length && drill.retry[0].wait <= 0) return drill.retry.shift().id;
+    const w = drill.ids.map(id => { const l = lvlOf(id); return (id === drill.last ? 0.15 : 1) * (isStale(id) ? 3 : 1) * (l <= 1 ? 2 : l === 2 ? 1.5 : 1); });
+    let r = Math.random() * w.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return drill.ids[i]; }
+    return drill.ids[0];
+  }
+  function nextDrillItem() {
+    drill.retry.forEach(x => x.wait--);
+    const id = pickDrillSkill();
+    drill.last = id;
+    drill.item = SK.gen(id, drillTier(id));
+    drill.phase = 'ask'; drill.choice = null;
+    renderDrill();
+  }
+  function renderDrill() {
+    const el = $('#view-train'), d = drill, it = d.item, s = SK.byId[it.skill];
+    const pct = d.done / d.n * 100;
+    const ty = TYPES[it.type];
+    el.innerHTML = `<div class="drill">
+      <div class="drill-top">
+        <button class="btn ghost sm" id="dr-x" aria-label="Surt de la sessió">✕</button>
+        <div class="bar dbar"><i style="width:${pct}%"></i></div>
+        <span class="dstreak ${d.streak >= 3 ? 'hot' : ''}" title="Encerts seguits">🔥 ${d.streak}</span>
+      </div>
+      <div class="drill-card card ${d.phase}">
+        <div class="dmeta"><span class="tag">${areaOf(s).icon} ${s.name}</span><span class="tag">${['', 'Fàcil', 'Mitjà', 'Difícil'][it.tier]}</span>${d.mode === 'test' ? '<span class="tag">⏩ Prova directa</span>' : d.mode === 'review' ? '<span class="tag">🔁 Repàs</span>' : ''}</div>
+        <div class="dq">${it.label}</div>
+        ${it.type === 'mcq'
+          ? `<div class="opts dopts">${it.options.map((o, j) => `<button class="opt" data-j="${j}"><kbd>${j + 1}</kbd> ${o.tex ? `$${o.tex}$` : o.html}</button>`).join('')}</div>`
+          : `<div class="inrow"><input class="ans" id="dr-in" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="${esc(ty.ph)}" aria-label="Resposta"></div>
+             <div class="keys">${ty.keys.map(k => `<button class="key" data-k="${esc(k)}" tabindex="-1">${esc(k.trim() || k)}</button>`).join('')}</div>
+             <div class="preview muted" id="dr-prev">Vista prèvia</div>`}
+      </div>
+      <div class="drill-foot" id="dr-foot"></div>
+    </div>`;
+    renderMath(el);
+    $('#dr-x').onclick = () => {
+      if (d.done > 0 && !confirm('Vols sortir? Perdràs el progrés d\'aquesta sessió.')) return;
+      drill = null; renderTrain();
+    };
+    const inp = $('#dr-in');
+    if (inp) {
+      const prev = $('#dr-prev');
+      const upd = () => {
+        const v = inp.value.trim();
+        if (!v) { prev.className = 'preview muted'; prev.textContent = 'Vista prèvia'; return; }
+        try { prev.className = 'preview'; prev.innerHTML = kt(ty.prev(ty.parse(v))); } catch (e) { prev.className = 'preview err'; prev.textContent = '⚠ ' + e.message; }
+        footAsk();
+      };
+      inp.addEventListener('input', upd);
+      $$('.key', el).forEach(b => b.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (d.phase !== 'ask') return;
+        const k = b.dataset.k, s0 = inp.selectionStart ?? inp.value.length, e0 = inp.selectionEnd ?? inp.value.length;
+        if (k === 'cap' || k === 'no existeix') inp.value = k;
+        else { inp.value = inp.value.slice(0, s0) + k + inp.value.slice(e0); inp.setSelectionRange(s0 + k.length, s0 + k.length); }
+        inp.focus(); upd();
+      }));
+      if (window.matchMedia('(pointer:fine)').matches) inp.focus({ preventScroll: true });
+    } else {
+      $$('.dopts .opt', el).forEach(b => b.onclick = () => selectOpt(+b.dataset.j));
+    }
+    footAsk();
+  }
+  function selectOpt(j) {
+    if (drill.phase !== 'ask') return;
+    drill.choice = j;
+    $$('.dopts .opt').forEach(o => o.classList.toggle('sel', +o.dataset.j === j));
+    footAsk();
+  }
+  function hasAnswer() {
+    if (drill.item.type === 'mcq') return drill.choice != null;
+    const inp = $('#dr-in');
+    return !!(inp && inp.value.trim());
+  }
+  function footAsk() {
+    if (drill.phase !== 'ask') return;
+    const f = $('#dr-foot');
+    f.className = 'drill-foot';
+    f.innerHTML = `<button class="btn ghost" id="dr-skip">No ho sé</button><span class="spacer"></span><button class="btn primary big" id="dr-chk" ${hasAnswer() ? '' : 'disabled'}>Comprova</button>`;
+    $('#dr-chk').onclick = drillCheck;
+    $('#dr-skip').onclick = () => drillResolve(false, true);
+  }
+  function drillCheck() {
+    const d = drill, it = d.item;
+    if (d.phase !== 'ask' || !hasAnswer()) return;
+    let ok;
+    if (it.type === 'mcq') ok = it.options[d.choice].ok;
+    else {
+      try { ok = TYPES[it.type].cmp(TYPES[it.type].parse($('#dr-in').value), it); }
+      catch (e) { const p = $('#dr-prev'); p.className = 'preview err'; p.textContent = '⚠ ' + e.message + ' (no compta com a error)'; return; }
+    }
+    drillResolve(ok, false);
+  }
+  function drillResolve(ok, skipped) {
+    const d = drill, it = d.item, k = skState(it.skill);
+    d.phase = ok ? 'ok' : 'bad';
+    k.n++; S.daily.drill = (S.daily.drill || 0) + 1;
+    const ps = d.perSkill[it.skill] ||= { ok: 0, bad: 0 };
+    if (ok) {
+      k.ok++; k.last = Date.now(); d.done++; d.streak++; d.best = Math.max(d.best, d.streak); ps.ok++;
+    } else {
+      d.mistakes++; d.streak = 0; ps.bad++;
+      if (d.mode === 'review' || d.mode === 'area') { d.retry.push({ id: it.skill, wait: 2 }); if (k.lvl >= 1) k.last = Math.min(k.last, Date.now() - STALE_DAYS * 864e5 - 1); }
+    }
+    onPart({ correct: ok, first: ok });
+    // estat visual
+    const card = $('.drill-card');
+    card.classList.remove('ask'); card.classList.add(d.phase);
+    $$('#view-train input, #view-train .key, #view-train .opt').forEach(x => { x.disabled = true; });
+    if (it.type === 'mcq') $$('.dopts .opt').forEach(o => { const opt = it.options[+o.dataset.j]; if (opt.ok) o.classList.add('right'); else if (+o.dataset.j === d.choice) o.classList.add('wrong'); });
+    $('.dbar i').style.width = (d.done / d.n * 100) + '%';
+    const st = $('.dstreak'); st.textContent = '🔥 ' + d.streak; st.classList.toggle('hot', d.streak >= 3);
+    const cheer = ['Perfecte!', 'Molt bé!', 'Exacte!', 'Així es fa!', 'Correcte!'];
+    const f = $('#dr-foot');
+    f.className = 'drill-foot ' + d.phase;
+    f.innerHTML = `<div class="dfb">
+        <b>${ok ? `✓ ${d.streak >= 3 && d.streak % 3 === 0 ? `${d.streak} seguides! 🔥` : cheer[Math.floor(Math.random() * cheer.length)]}` : skipped ? 'Cap problema. Mira com es fa:' : '✗ No és correcte.'}</b>
+        ${ok ? '' : `<div class="dsol">Solució: ${answerHTML(it)}</div>`}
+        ${it.why ? (ok ? `<details class="dwhy"><summary>Per què?</summary><div>${it.why}</div></details>` : `<div class="dwhy">${it.why}</div>`) : ''}
+        ${!ok && d.mode !== 'test' ? '<div class="small muted">Aquest tipus tornarà a sortir amb altres números.</div>' : ''}
+      </div>
+      <button class="btn ${ok ? 'primary' : 'danger-solid'} big" id="dr-next">Continua</button>`;
+    renderMath(f);
+    $('#dr-next').onclick = drillNext;
+    $('#dr-next').focus({ preventScroll: true });
+    save();
+  }
+  function drillNext() {
+    const d = drill;
+    if (!d || d.phase === 'ask') return;
+    if (d.done >= d.n || (d.mode === 'test' && d.mistakes >= 2)) { finishDrill(); return; }
+    nextDrillItem();
+  }
+  function finishDrill() {
+    const d = drill;
+    drill = null;
+    const total = d.done + d.mistakes, acc = total ? d.done / total : 0;
+    const secs = Math.round((Date.now() - d.t0) / 1000);
+    let gained = 0, msg = '';
+    const single = d.ids.length === 1 ? d.ids[0] : null;
+    const passed = d.mode === 'test' ? d.mistakes <= 1 && d.done >= d.n : acc >= 0.8;
+    if (single && (d.mode === 'skill' || d.mode === 'test')) {
+      const k = skState(single), before = k.lvl;
+      if (passed && k.lvl < 3) k.lvl = d.mode === 'test' ? 3 : k.lvl + 1;
+      gained = k.lvl - before;
+      if (passed) k.last = Date.now();
+      msg = gained ? `Mestria pujada: <b>${starsStr(before)} → ${starsStr(k.lvl)}</b>`
+        : k.lvl === 3 ? 'Ja tens ★★★ en aquesta habilitat. Aquesta sessió ha servit de repàs.'
+          : d.mode === 'test' ? 'No l\'has superada (màxim 1 error). Fes sessions normals i ja hi arribaràs.'
+            : `Per guanyar una estrella necessites ≥ 80 % d'encerts (aquí ${Math.round(acc * 100)} %). Torna-ho a provar!`;
+    } else {
+      const weak = Object.entries(d.perSkill).filter(([, v]) => v.bad).map(([id]) => SK.byId[id].name);
+      msg = weak.length ? `Per repassar: ${weak.map(n => `<span class="pill">${n}</span>`).join(' ')}` : 'Cap error. Tot ben après!';
+    }
+    const perfect = d.mistakes === 0 && d.done >= d.n;
+    let xp = d.done ? 10 + d.done * 3 + (perfect ? 15 : 0) + gained * 20 : 0;
+    ensureDaily();
+    if (d.done >= d.n) {
+      touchStreak();
+      bumpMission('drill');
+      for (let i = 0; i < gained; i++) bumpMission('star');
+      if (perfect) bumpMission('drillperfect');
+      S.drillStats.sessions++;
+      if (perfect) S.drillStats.perfect++;
+    }
+    if (xp) addXP(xp, 'sessió d\'Entrena');
+    checkBadges();
+    save(); renderHeader();
+    const rk = rankInfo();
+    const el = $('#view-train');
+    const nx = nextSkill();
+    el.innerHTML = `<section class="card drill-end">
+      <div class="end-emoji">${perfect ? '🏆' : gained ? '⭐' : d.done >= d.n ? '✅' : '💪'}</div>
+      <h2>${d.done >= d.n ? (perfect ? 'Sessió perfecta!' : 'Sessió completada!') : 'Sessió acabada'}</h2>
+      <div class="end-stats">
+        <div><b>${Math.round(acc * 100)}%</b><small>encerts</small></div>
+        <div><b>+${xp}</b><small>XP</small></div>
+        <div><b>${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</b><small>temps</small></div>
+        <div><b>🔥 ${d.best}</b><small>millor ratxa</small></div>
+      </div>
+      <p>${msg}</p>
+      <p class="muted small">Rang: ${rk.icon} <b>${rk.name}</b> · ${rk.st}/${rk.max} ★</p>
+      <div class="ractions">
+        <button class="btn ghost" id="de-map">🗺️ Mapa</button>
+        <button class="btn ghost" id="de-again">↻ Una altra</button>
+        ${nx ? `<button class="btn primary" id="de-next">Següent: ${nx.name} →</button>` : ''}
+      </div>
+    </section>`;
+    renderMath(el);
+    if (rk.i > d.rankBefore) rankUp(rk);
+    $('#de-map').onclick = renderTrain;
+    $('#de-again').onclick = () => (d.mode === 'review' ? startReview() : startDrill({ mode: d.mode === 'test' ? 'skill' : d.mode, ids: d.ids, area: d.area }));
+    if (nx) $('#de-next').onclick = () => startDrill({ mode: 'skill', ids: [nx.id] });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function rankUp(rk) {
+    const m = $('#modal');
+    m.innerHTML = `<div class="modal-card levelup">
+      <div class="burst">${'<i></i>'.repeat(14)}</div>
+      <div class="lvl-big rank-up">${rk.icon}</div>
+      <h2>Nou rang: ${rk.name}!</h2>
+      <p>${rk.st} estrelles de mestria. ${rk.next ? `Següent: ${rk.next.icon} ${rk.next.name}.` : ''}</p>
+      <button class="btn primary" data-close>Endavant!</button></div>`;
+    m.hidden = false;
+    $('[data-close]', m).onclick = () => { m.hidden = true; };
+    $('[data-close]', m).focus();
+  }
+  document.addEventListener('keydown', e => {
+    if (!drill || current !== 'train' || !$('#modal').hidden) return;
+    const typing = e.target && e.target.id === 'dr-in';
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (drill.phase === 'ask') drillCheck(); else drillNext();
+    } else if (!typing && drill.phase === 'ask' && drill.item.type === 'mcq' && /^[1-9]$/.test(e.key)) {
+      const j = +e.key - 1;
+      if (j < drill.item.options.length) selectOpt(j);
+    }
+  });
+
   /* ---------- Simulacre ---------- */
   let examTimer = null, examCtl = null, examRunning = false;
   window.addEventListener('beforeunload', e => { if (examRunning) { e.preventDefault(); e.returnValue = ''; } });
@@ -850,20 +1304,28 @@
         <h1>📝 Simulacre del Tercer Seminari</h1>
         <ul>
           <li>Disposes de <b>50 minuts</b>.</li>
-          <li>Hi ha <b>4 exercicis</b> (un de cada tipus, nivell examen). Com al seminari real, <b>en compten 3</b>: la nota final és la mitjana dels <b>3 millors</b>.</li>
+          <li>Hi ha <b>4 exercicis</b> de nivell examen. Com al seminari real, <b>en compten 3</b>: la nota final és la mitjana dels <b>3 millors</b>.</li>
+          <li><b>Format d'enguany:</b> regla de la cadena, derivada via límit, extrems relatius (o estudi de funció) i regla de l'Hôpital. <b>Format 2023-24:</b> els 4 exercicis del full original.</li>
           <li><b>No hi ha correcció fins que entreguis</b>, ni pistes. Només boli i cap.</li>
           <li>Recompensa: fins a <b>200 XP</b> + bonus si treus ≥ 9.</li>
         </ul>
-        <button class="btn primary big" id="exam-start">Començar el simulacre</button>
+        <div class="hero-actions"><button class="btn primary big" data-fmt="nou">▶ Format d'enguany (Hôpital i extrems)</button>
+        <button class="btn ghost big" data-fmt="orig">Format del full 2023-24</button></div>
       </section>
       ${(() => {
         const ex = S.history.filter(h => h.mode === 'exam').slice(-5).reverse();
         return ex.length ? `<section class="card"><h3>Últims simulacres</h3><ul class="plain">${ex.map(h => `<li>${new Date(h.t).toLocaleString('ca')} — <b>${h.nota.toFixed(1)}</b></li>`).join('')}</ul></section>` : '';
       })()}`;
-    $('#exam-start').onclick = startExam;
+    $$('[data-fmt]', el).forEach(b => b.onclick = () => startExam(b.dataset.fmt));
   }
-  function startExam() {
-    const exs = TOPIC_IDS.map(t => G.generate(t, 3));
+  let examTopics = [];
+  const EXAM_FORMATS = {
+    nou: () => ['chain', 'limder', Math.random() < 0.6 ? 'extrem' : 'study', 'hopital'],
+    orig: () => ['chain', 'limder', 'study', 'ratlim'],
+  };
+  function startExam(fmt = 'nou') {
+    examTopics = EXAM_FORMATS[fmt]();
+    const exs = examTopics.map(t => G.generate(t, 3));
     const el = $('#view-exam');
     const ends = Date.now() + 50 * 60 * 1000;
     el.innerHTML = `
@@ -904,11 +1366,11 @@
     const final = Math.round(best3.reduce((a, b) => a + b, 0) / 3 * 10) / 10;
     ensureDaily();
     S.history.push({ t: Date.now(), topic: 'exam', diff: 3, nota: final, mode: 'exam', parts: notes });
-    TOPIC_IDS.forEach((t, i) => { S.mastery[t].push({ nota: notes[i], diff: 3 }); });
+    examTopics.forEach((t, i) => { S.mastery[t].push({ nota: notes[i], diff: 3 }); });
     touchStreak();
     bumpMission('exam');
-    TOPIC_IDS.forEach(t => bumpMission('complete', { topic: t }));
-    TOPIC_IDS.forEach(t => { if (!S.daily.topics.includes(t)) S.daily.topics.push(t); });
+    examTopics.forEach(t => bumpMission('complete', { topic: t }));
+    examTopics.forEach(t => { if (!S.daily.topics.includes(t)) S.daily.topics.push(t); });
     bumpMission('alltopics', { set: S.daily.topics.length });
     notes.forEach(n => { bumpMission('hard'); if (n === 10) bumpMission('perfect'); });
     const xp = Math.round(final * 20) + (final >= 9 ? 40 : 0);
@@ -922,7 +1384,7 @@
     r.innerHTML = `<section class="card result exam-res">
       <div class="grade g${final >= 9 ? 'a' : final >= 7 ? 'b' : final >= 5 ? 'c' : 'd'}">${final.toFixed(1)}</div>
       <div class="rtext"><b>Nota del simulacre</b> (mitjana dels 3 millors)<br>
-      ${notes.map((n, i) => `<span class="pill">${TOPICS[TOPIC_IDS[i]].icon} Ex. ${i + 1}: ${n.toFixed(1)}</span>`).join(' ')}
+      ${notes.map((n, i) => `<span class="pill">${TOPICS[examTopics[i]].icon} Ex. ${i + 1}: ${n.toFixed(1)}</span>`).join(' ')}
       <br><span class="xpgain">+${xp} XP</span></div></section>`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1008,9 +1470,11 @@
     });
     renderExamIntro();
     renderHeader();
+    $('#hdr-rank').onclick = () => show('train');
     const [hv, ht] = location.hash.slice(1).split('/');
     if (hv === 'learn' && LESSONS.list.some(l => l.id === ht)) openLesson(ht);
-    else if (['practice', 'exam', 'theory', 'history', 'learn'].includes(hv)) {
+    else if (hv === 'train' && SK.byId[ht]) { show('train'); openSkill(ht); }
+    else if (['practice', 'exam', 'theory', 'history', 'learn', 'train'].includes(hv)) {
       if (hv === 'practice' && TOPICS[ht]) { S.settings.topic = ht; practiceHasEx = false; }
       show(hv);
     } else show('home');

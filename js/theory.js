@@ -109,6 +109,58 @@ const THEORY = {
     <li>El terme independent $a_0/b_0$ <b>no</b> hi pinta res (això seria el límit quan $x\to0$).</li>
   </ul>`,
 
+  hopital: String.raw`
+  <h3>La regla</h3>
+  <p>Si $\displaystyle\lim_{x\to a}\frac{f(x)}{g(x)}$ és una indeterminació $\frac00$ o $\frac{\infty}{\infty}$, $f$ i $g$ són derivables a prop de $a$ (amb $g'\neq0$) i existeix $\displaystyle\lim_{x\to a}\frac{f'(x)}{g'(x)}$, llavors</p>
+  <div class="formula">$$\lim_{x\to a}\frac{f(x)}{g(x)}=\lim_{x\to a}\frac{f'(x)}{g'(x)}.$$</div>
+  <p>Val igual per a $a=\pm\infty$ i per a límits laterals.</p>
+  <h3>Mètode (4 passos)</h3>
+  <ol class="steps">
+    <li><b>Substitueix.</b> Si surt un número (o $\frac{k}{0}$ amb $k\neq0$), ja està: <b>no</b> hi ha indeterminació i l'Hôpital <b>no</b> es pot aplicar.</li>
+    <li><b>Classifica.</b> $\frac00$ o $\frac\infty\infty$: directe. Les altres s'han de transformar (taula de sota).</li>
+    <li><b>Deriva dalt i baix per separat</b> (no és la regla del quocient!) i torna a substituir.</li>
+    <li>Si torna a sortir $\frac00$ o $\frac\infty\infty$, repeteix. <b>Escriu</b> a cada pas quina indeterminació tens.</li>
+  </ol>
+  <h3>Transformar les altres indeterminacions</h3>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Tipus</th><th>Truc</th><th>Exemple</th></tr>
+    <tr><td>$0\cdot\infty$</td><td>$f\cdot g=\dfrac{f}{1/g}$</td><td>$x\ln x=\dfrac{\ln x}{1/x}\to0$</td></tr>
+    <tr><td>$\infty-\infty$</td><td>Denominador comú o conjugat</td><td>$\frac1x-\frac1{\sin x}=\frac{\sin x-x}{x\sin x}$</td></tr>
+    <tr><td>$1^\infty,\ 0^0,\ \infty^0$</td><td>$f^g=e^{g\ln f}$</td><td>$\left(1+\frac ax\right)^x\to e^{a}$</td></tr>
+  </table></div>
+  <h3>Límits que surten sempre (val la pena saber-los)</h3>
+  <ul>
+    <li>$\displaystyle\lim_{x\to0}\frac{\sin(ax)}{bx}=\frac ab$, $\displaystyle\lim_{x\to0}\frac{e^{ax}-1}{bx}=\frac ab$, $\displaystyle\lim_{x\to0}\frac{\ln(1+ax)}{bx}=\frac ab$.</li>
+    <li>$\displaystyle\lim_{x\to0}\frac{1-\cos x}{x^2}=\frac12$ (dues aplicacions).</li>
+    <li><b>Jerarquia a $+\infty$:</b> $\ln x\ll x^n\ll e^{ax}$ ($a>0$). Per exemple $\frac{x^{10}}{e^x}\to0$ i $\frac{\ln x}{\sqrt x}\to0$.</li>
+  </ul>
+  <h3>Errors típics</h3>
+  <ul>
+    <li>Aplicar-la sense indeterminació: $\lim_{x\to0}\frac{x+1}{x+2}=\frac12$, però «derivant» sortiria $1$.</li>
+    <li>Fer la derivada del quocient $\left(\frac fg\right)'$ en lloc de $\frac{f'}{g'}$.</li>
+    <li>Pensar que si $\lim\frac{f'}{g'}$ no existeix, tampoc existeix $\lim\frac fg$. Ex.: $\frac{x+\sin x}{x}\to1$ a $+\infty$, però $\frac{1+\cos x}{1}$ oscil·la.</li>
+  </ul>`,
+  extrem: String.raw`
+  <h3>Definicions</h3>
+  <p>$f$ té un <b>màxim relatiu</b> a $c$ si $f(c)\ge f(x)$ per a tots els $x$ a prop de $c$ (i un <b>mínim relatiu</b> si $f(c)\le f(x)$). Si $f$ és derivable a $c$ i hi té un extrem relatiu, llavors $f'(c)=0$ (teorema de Fermat). Al revés no és cert: $x^3$ té $f'(0)=0$ i no té cap extrem.</p>
+  <h3>Mètode</h3>
+  <ol class="steps">
+    <li><b>Domini.</b> On està definida $f$? ($\ln x$ demana $x>0$, un quocient demana denominador $\neq0$.)</li>
+    <li><b>Deriva i factoritza</b> $f'$. Truc: $e^{(\dots)}>0$ sempre, i un quocient s'anul·la quan s'anul·la el numerador.</li>
+    <li><b>Punts crítics:</b> resol $f'(x)=0$.</li>
+    <li><b>Taula de signes de $f'$</b> amb els punts crítics <b>i</b> els punts fora del domini. $f'>0$: creix ↗; $f'\lt 0$: decreix ↘.</li>
+    <li><b>Classifica</b> (criteri de la 1a derivada): ↗ després ↘ és màxim; ↘ després ↗ és mínim; si no canvia, cap dels dos.</li>
+    <li><b>Valor</b> de l'extrem: $f(c)$, substituint a $f$ (no a $f'$).</li>
+  </ol>
+  <h3>Criteri de la segona derivada</h3>
+  <p>Si $f'(c)=0$: $f''(c)>0\Rightarrow$ mínim (vall ∪); $f''(c)\lt 0\Rightarrow$ màxim (muntanya ∩); $f''(c)=0\Rightarrow$ <b>no decideix</b> (ex.: $x^4$ té mínim a $0$ i $x^3$ no en té, i en tots dos $f''(0)=0$).</p>
+  <h3>Extrems absoluts</h3>
+  <ul>
+    <li><b>En un interval tancat $[a,b]$</b> (Weierstrass: sempre n'hi ha si $f$ és contínua): avalua $f$ als punts crítics de dins i als extrems $a$, $b$, i compara.</li>
+    <li><b>A tot $\mathbb R$</b>: cal mirar els límits a $\pm\infty$. Si $f\to+\infty$ no hi ha màxim absolut; si $f\to-\infty$ no hi ha mínim absolut.</li>
+  </ul>
+  <h3>Exemple</h3>
+  <p>$f(x)=x\,e^{-x}$. $f'(x)=e^{-x}-xe^{-x}=(1-x)e^{-x}$. Com que $e^{-x}>0$, $f'=0\iff x=1$. Signe: $f'>0$ a $(-\infty,1)$ i $f'\lt 0$ a $(1,+\infty)$. Màxim relatiu a $x=1$, amb $f(1)=\frac1e$. A més $f\to0$ a $+\infty$ i $f\to-\infty$ a $-\infty$: és màxim absolut i no hi ha mínim absolut.</p>`,
   syntax: String.raw`
   <div class="tblwrap"><table class="tbl">
     <tr><th>Vols escriure</th><th>Escriu</th></tr>

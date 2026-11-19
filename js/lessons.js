@@ -366,6 +366,28 @@ const LESSONS = (() => {
         Q(R`Per què $A(x)=a_n+\frac{a_{n-1}}{x}+\dots+\frac{a_0}{x^n}\to a_n$?`, [R`Perquè cada $\frac{a_j}{x^k}\to0$ quan $x\to+\infty$`, R`Perquè $a_n$ és el més gran`, 'Per l\'Hôpital'], 0, 'Constant dividit per una cosa enorme.'),
       ],
     },
+    /* ---------------- BLOC 4b: aplicacions de la derivada ---------------- */
+    {
+      id: 'hop', block: 'Aplicacions de la derivada', title: "La regla de l'Hôpital",
+      body: R`
+      <p>Quan en un límit de quocient substitueixes i surt $\frac00$ o $\frac{\infty}{\infty}$, no saps quant val: depèn de <b>qui va més ràpid</b>. La regla de l'Hôpital ho resol comparant les velocitats, és a dir, les derivades:</p>
+      <div class="formula">$$\lim_{x\to a}\frac{f(x)}{g(x)}=\lim_{x\to a}\frac{f'(x)}{g'(x)}\qquad\text{si és }\tfrac00\text{ o }\tfrac\infty\infty.$$</div>
+      <p><b>Exemple:</b> $\displaystyle\lim_{x\to0}\frac{\sin 3x}{2x}$. Substituint: $\frac{0}{0}$. Derivant dalt i baix: $\displaystyle\lim_{x\to0}\frac{3\cos 3x}{2}=\frac32$.</p>
+      <p class="callout warn"><b>Abans de derivar, substitueix.</b> Si no és indeterminació, la regla dona resultats falsos. I es deriva <b>per separat</b>: no és la regla del quocient.</p>
+      <p><b>Altres indeterminacions</b> es converteixen en quocient: $0\cdot\infty$ amb $f\cdot g=\frac{f}{1/g}$; $\infty-\infty$ fent denominador comú; $1^\infty$, $0^0$, $\infty^0$ amb $f^g=e^{g\ln f}$.</p>
+      <p><b>Jerarquia</b> a $+\infty$: $\ln x\ll x^n\ll e^x$.</p>`,
+      parts: [SK.gen('h-form', 1), SK.gen('h-00', 1), SK.gen('h-step', 1), SK.gen('h-inf', 1), SK.gen('h-prod', 1), SK.gen('h-exp', 1)],
+    },
+    {
+      id: 'ext', block: 'Aplicacions de la derivada', title: 'Extrems relatius: els dos criteris',
+      body: R`
+      <p>Un <b>màxim relatiu</b> és un cim: el punt més alt <i>del seu voltant</i>. Un <b>mínim relatiu</b>, una vall. Als cims i a les valls la tangent és horitzontal: $f'(c)=0$. Aquests punts s'anomenen <b>punts crítics</b>.</p>
+      <p><b>Criteri de la 1a derivada:</b> mira el signe de $f'$ a banda i banda. $+\to-$: màxim. $-\to+$: mínim. Si no canvia: ni una cosa ni l'altra.</p>
+      <p><b>Criteri de la 2a derivada:</b> $f''(c)>0$ vall (mínim), $f''(c)\lt 0$ muntanya (màxim), $f''(c)=0$ no decideix.</p>
+      <p><b>Exemple:</b> $f(x)=x^2e^{-x}$. $f'(x)=2xe^{-x}-x^2e^{-x}=x(2-x)e^{-x}$. Crítics: $x=0$ i $x=2$. Signes: $-$ a $(-\infty,0)$, $+$ a $(0,2)$, $-$ a $(2,\infty)$. Mínim a $0$ ($f=0$) i màxim a $2$ ($f=\frac{4}{e^2}$).</p>
+      <p><b>Extrems absoluts en $[a,b]$:</b> compara $f$ als crítics de dins i als extrems de l'interval.</p>`,
+      parts: [SK.gen('x-crit', 1), SK.gen('x-mono', 1), SK.gen('x-first', 1), SK.gen('x-second', 1), SK.gen('x-value', 1), SK.gen('x-abs', 1)],
+    },
     /* ---------------- BLOC 5 ---------------- */
     {
       id: 'original', block: 'El seminari', title: 'El seminari original, resolt i redactat',
